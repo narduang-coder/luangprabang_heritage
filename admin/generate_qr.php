@@ -29,7 +29,7 @@ function generateQRCode($data, $size = 300) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $house_id = intval($_POST['house_id']);
     
-    // 🔒 ปรับปรุงเพื่อความปลอดภัย: ใช้ Prepared Statement แทนการต่อ String ตรงๆ
+    // ใช้ Prepared Statement เพื่อความปลอดภัย
     $stmt = mysqli_prepare($connect, "SELECT * FROM heritage_houses WHERE house_id = ?");
     mysqli_stmt_bind_param($stmt, "i", $house_id);
     mysqli_stmt_execute($stmt);
@@ -41,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit; 
     }
     
-    // สร้าง QR ID หากยังไม่มี
     if (empty($house['qr_code'])) { 
         $qr_id = 'LP_' . uniqid(); 
         $update_stmt = mysqli_prepare($connect, "UPDATE heritage_houses SET qr_code = ? WHERE house_id = ?");
@@ -51,27 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $qr_id = $house['qr_code']; 
     }
     
-    // สร้างโฟลเดอร์สำหรับเก็บภาพ QR Code หากยังไม่มี
     if (!is_dir('../qr_codes')) {
         mkdir('../qr_codes', 0777, true);
     }
     
-    // 🌐 ปรับปรุงการหา Base URL สำหรับ Railway (รองรับทั้ง Domain ของ Railway และ Localhost)
-    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https://' : 'http://';
-    $host = $_SERVER['HTTP_HOST'];
+    // 🌐 ตั้งค่าโดเมน Railway ของคุณที่นี่ (ไม่ต้องใส่ / ปิดท้าย)
+    // เปลี่ยนจาก 'your-project.up.railway.app' เป็นโดเมนจริงของคุณบน Railway
+    $railway_domain = "https://your-project.up.railway.app"; 
     
-    // ลบโฟลเดอร์ย่อยออกเพื่อให้ได้โดเมนหลักที่ถูกต้องไม่ว่าจะรันบนเครื่องคอมตัวเองหรือบน Cloud
-    $request_uri = $_SERVER['REQUEST_URI'];
-    $project_path = strtok($request_uri, '?');
-    // ดึงเอาส่วนของ /admin หรือ /api ออกไปเพื่อให้เหลือแต่ path หลักของโปรเจกต์
-    $project_path = preg_replace('/\/admin\/.*|\/api\/.*/', '', $project_path);
-    $project_path = rtrim($project_path, '/');
-
-    // ตัวอย่างผลลัพธ์: https://your-project.up.railway.app หรือ http://localhost/luangprabang_heritage
-    $base_url = $protocol . $host . $project_path;
-    
-    // สร้างลิงก์ปลายทางเมื่อคนสแกน QR Code
-    $qr_data = $base_url . '/heritage_detail.php?id=' . $qr_id;
+    // 🎯 บังคับให้ลิงก์ใน QR Code วิ่งเข้า Railway เสมอ โดยไม่มีคำว่า localhost หรือชื่อโฟลเดอร์เดิม
+    // ผลลัพธ์ที่ได้จะเป็น: https://your-project.up.railway.app/heritage_detail.php?id=LP_xxx
+    $qr_data = $railway_domain . '/heritage_detail.php?id=' . $qr_id;
     
     $qr_image = generateQRCode($qr_data, 300);
     
