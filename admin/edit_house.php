@@ -64,8 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         historical_significance_en='$historical_significance_en', 
         description_lo='$description_lo', 
         description_en='$description_en', 
-        latitude=$latitude, 
-        longitude=$longitude, 
+        -- latitude=$latitude, 
+        -- longitude=$longitude, 
         image_main='$image_main', 
         status='$status' 
     WHERE house_id=$house_id";
