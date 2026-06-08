@@ -108,7 +108,7 @@ $result = mysqli_query($connect, $query);
                             $status_text = $row['status'] == 'active' ? 'ເປີດໃຊ້' : 'ປິດໃຊ້';
                             // if($row['role'] == 'admin'): $role_class = 'danger'; $role_text = 'Admin';
                          if($row['role'] == 'staff'): $role_class = 'warning'; $role_text = 'ພະນັກງານ';
-                            else: $role_class = 'secondary'; $role_text = 'ຜູ້ເບິ່ງ'; endif;
+                            else: $role_class = 'secondary'; $role_text = 'ແອັດມິນ'; endif;
                         ?>
                         <tr>
                             <td class="fw-bold"><?php echo $count++; ?></td>
