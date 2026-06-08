@@ -1,20 +1,16 @@
 <?php
 // config/database.php
 
-// ກວດສອບວ່າກຳລັງລະບົບໃດ (Railway ຫຼື Local)
-if (getenv('RAILWAY_ENVIRONMENT')) {
-    // ຮູບແບບສຳລັບ Railway (ອ່ານຄ່າຈາກ Environment Variables)
-    $db_host = getenv('MYSQL_HOST');
-    $db_user = getenv('MYSQL_USER');
-    $db_pass = getenv('MYSQL_PASSWORD');
-    $db_name = getenv('MYSQL_DATABASE');
-} else {
-    // ຮູບແບບສຳລັບການທົດສອບໃນຄອມພິວເຕີ (Local)
-    $db_host = 'localhost';
-    $db_user = 'root';
-    $db_pass = '';
-    $db_name = 'luangprabang_heritage';
+// ກວດສອບວ່າ extension mysqli ຖືກໂຫຼດຫຼືບໍ່
+if (!extension_loaded('mysqli')) {
+    die("❌ PHP extension 'mysqli' is not loaded. Please check your PHP configuration.");
 }
+
+// ໃຊ້ Environment Variables ຂອງ Railway (ຫຼື ຄ່າເລີ່ມຕົ້ນສຳລັບ local)
+$db_host = getenv('MYSQL_HOST') ?: 'localhost';
+$db_user = getenv('MYSQL_USER') ?: 'root';
+$db_pass = getenv('MYSQL_PASSWORD') ?: '';
+$db_name = getenv('MYSQL_DATABASE') ?: 'luangprabang_heritage';
 
 // ສ້າງການເຊື່ອມຕໍ່
 $connect = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
