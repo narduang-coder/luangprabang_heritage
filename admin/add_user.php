@@ -7,6 +7,11 @@ if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== tru
 include_once '../config/database.php';
 include_once 'check_permission.php';
 
+// ເປີດການສະແດງຂໍ້ຜິດພາດ (ຄວນປິດເມື່ອຂຶ້ນລະບົບຈິງ)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
 if (!canManageUsers()) {
     header('Location: dashboard.php');
     exit;
@@ -26,28 +31,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = $_POST['status'] ?? 'active';
     
     $errors = [];
+    
+    // ກວດສອບຂໍ້ມູນ
     if (empty($username)) $errors[] = 'ຊື່ຜູ້ໃຊ້ຫ້າມວ່າງເປົ່າ';
     if (empty($password)) $errors[] = 'ລະຫັດຜ່ານຫ້າມວ່າງເປົ່າ';
     if ($password !== $confirm_password) $errors[] = 'ລະຫັດຜ່ານບໍ່ກົງກັນ';
     if (strlen($password) < 6) $errors[] = 'ລະຫັດຜ່ານຕ້ອງມີຢ່າງນ້ອຍ 6 ຕົວອັກສອນ';
     
-    $check = mysqli_query($connect, "SELECT user_id FROM users WHERE username = '$username'");
-    if (mysqli_num_rows($check) > 0) $errors[] = 'ຊື່ຜູ້ໃຊ້ນີ້ມີແລ້ວ';
+    // ກວດສອບຊື່ຜູ້ໃຊ້ຊໍ້າ (ໃຊ້ Prepared Statement)
+    $check_stmt = mysqli_prepare($connect, "SELECT user_id FROM users WHERE username = ?");
+    if ($check_stmt) {
+        mysqli_stmt_bind_param($check_stmt, "s", $username);
+        mysqli_stmt_execute($check_stmt);
+        mysqli_stmt_store_result($check_stmt);
+        
+        if (mysqli_stmt_num_rows($check_stmt) > 0) {
+            $errors[] = 'ຊື່ຜູ້ໃຊ້ນີ້ມີແລ້ວ';
+        }
+        mysqli_stmt_close($check_stmt);
+    }
     
-    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'ຮູບແບບ Email ບໍ່ຖືກຕ້ອງ';
+    if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'ຮູບແບບ Email ບໍ່ຖືກຕ້ອງ';
+    }
     
     if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $query = "INSERT INTO users (username, password, fullname_lo, fullname_en, email, role, status) 
-                  VALUES ('$username', '$hashed_password', '$fullname_lo', '$fullname_en', '$email', '$role', '$status')";
         
-        if (mysqli_query($connect, $query)) {
-            $message = 'ເພີ່ມຜູ້ໃຊ້ສຳເລັດ!';
-            $message_type = 'success';
-            echo "<script>setTimeout(function(){ window.location.href = 'users.php'; }, 1500);</script>";
+        // ໃຊ້ Prepared Statement ສຳລັບ INSERT
+        $insert_stmt = mysqli_prepare($connect, "INSERT INTO users (username, password, fullname_lo, fullname_en, email, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        
+        if ($insert_stmt) {
+            mysqli_stmt_bind_param($insert_stmt, "sssssss", $username, $hashed_password, $fullname_lo, $fullname_en, $email, $role, $status);
+            
+            if (mysqli_stmt_execute($insert_stmt)) {
+                $message = 'ເພີ່ມຜູ້ໃຊ້ສຳເລັດ!';
+                $message_type = 'success';
+                echo "<script>
+                    Swal.fire({
+                        title: 'ສຳເລັກ!',
+                        text: 'ເພີ່ມຜູ້ໃຊ້ສຳເລັດ',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(function() {
+                        window.location.href = 'users.php';
+                    });
+                </script>";
+            } else {
+                $message = 'ຜິດພາດ: ' . mysqli_error($connect);
+                $message_type = 'danger';
+                error_log("MySQL Error: " . mysqli_error($connect));
+            }
+            mysqli_stmt_close($insert_stmt);
         } else {
-            $message = 'ຜິດພາດ: ' . mysqli_error($connect);
+            $message = 'ຜິດພາດ: ບໍ່ສາມາດກຽມຄຳສັ່ງ SQL ໄດ້';
             $message_type = 'danger';
+            error_log("Prepare Error: " . mysqli_error($connect));
         }
     } else {
         $message = implode('<br>', $errors);
@@ -60,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>ເພີ່ມຜູ້ໃຊ້ໃໝ່</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -68,16 +109,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         * { font-family: 'Noto Sans Lao', 'Phetsarath OT', sans-serif; }
         body { background: #f5f0e8; }
-        .sidebar { background: #1a472a; min-height: 100vh; color: white; position: fixed; width: 260px; }
-        .sidebar .nav-link { color: rgba(255,255,255,0.85); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #2d6a4f; color: white; }
+        .sidebar { background: #1a472a; min-height: 100vh; color: white; position: fixed; width: 260px; transition: all 0.3s; z-index: 1000; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.85); padding: 12px 20px; border-radius: 10px; margin: 5px 10px; transition: all 0.3s; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #2d6a4f; color: white; transform: translateX(5px); }
         .sidebar .nav-link i { margin-right: 12px; width: 25px; }
-        .main-content { margin-left: 260px; padding: 20px; }
+        .main-content { margin-left: 260px; padding: 20px; transition: all 0.3s; }
         .card-custom { background: white; border-radius: 20px; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.08); padding: 30px; max-width: 700px; margin: auto; }
-        .btn-custom { background: #2d6a4f; border: none; border-radius: 50px; padding: 10px 25px; color: white; }
-        .btn-custom:hover { background: #1a472a; }
+        .btn-custom { background: #2d6a4f; border: none; border-radius: 50px; padding: 10px 25px; color: white; transition: all 0.3s; }
+        .btn-custom:hover { background: #1a472a; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .required:after { content: " *"; color: red; }
-        @media (max-width: 768px) { .sidebar { width: 70px; } .sidebar .nav-link span:not(.nav-icon) { display: none; } .main-content { margin-left: 70px; } }
+        .form-control:focus { border-color: #2d6a4f; box-shadow: 0 0 0 0.2rem rgba(45,106,79,0.25); }
+        @media (max-width: 768px) { 
+            .sidebar { width: 70px; } 
+            .sidebar .nav-link span:not(.nav-icon) { display: none; } 
+            .main-content { margin-left: 70px; } 
+            .card-custom { padding: 20px; margin: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -100,15 +147,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card-custom">
         <h2 class="mb-4 text-center"><i class="fas fa-user-plus text-success"></i> ເພີ່ມຜູ້ໃຊ້ໃໝ່</h2>
         
-        <?php if($message): ?>
-            <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show"><?php echo $message; ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        <?php if($message && $message_type != 'success'): ?>
+            <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
+                <?php echo $message; ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         <?php endif; ?>
         
-        <form method="POST">
+        <form method="POST" id="addUserForm">
             <div class="row">
                 <div class="col-md-12 mb-3">
                     <label class="required">ຊື່ຜູ້ໃຊ້ (Username)</label>
-                    <input type="text" name="username" class="form-control form-control-lg" required>
+                    <input type="text" name="username" class="form-control form-control-lg" required 
+                           pattern="[a-zA-Z0-9_]{3,20}" 
+                           title="ຊື່ຜູ້ໃຊ້ຕ້ອງມີ 3-20 ຕົວອັກສອນ (a-z, A-Z, 0-9, _)">
+                    <small class="text-muted">ອັກສອນພາສາອັງກິດ ຫຼື ຕົວເລກເທົ່ານັ້ນ (3-20 ຕົວອັກສອນ)</small>
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -124,17 +177,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <div class="col-md-6 mb-3">
                     <label>ຊື່ ແລະ ນາມສະກຸນ (ລາວ)</label>
-                    <input type="text" name="fullname_lo" class="form-control">
+                    <input type="text" name="fullname_lo" class="form-control" placeholder="ຕົວຢ່າງ: ສົມສັກ ໄຊຍະເດດ">
                 </div>
                 
                 <div class="col-md-6 mb-3">
                     <label>ຊື່ ແລະ ນາມສະກຸນ (ອັງກິດ)</label>
-                    <input type="text" name="fullname_en" class="form-control">
+                    <input type="text" name="fullname_en" class="form-control" placeholder="Example: Somsack Xayyadeth">
                 </div>
                 
                 <div class="col-md-6 mb-3">
                     <label>ອີເມວ (Email)</label>
-                    <input type="email" name="email" class="form-control">
+                    <input type="email" name="email" class="form-control" placeholder="example@gmail.com">
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -156,24 +209,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="text-center mt-3">
-                <button type="submit" class="btn-custom btn-lg px-5"><i class="fas fa-save"></i> ບັນທຶກ</button>
-                <a href="users.php" class="btn btn-secondary btn-lg px-5 ms-2"><i class="fas fa-times"></i> ຍົກເລີກ</a>
+                <button type="submit" class="btn-custom btn-lg px-5" id="submitBtn">
+                    <i class="fas fa-save"></i> ບັນທຶກ
+                </button>
+                <a href="users.php" class="btn btn-secondary btn-lg px-5 ms-2">
+                    <i class="fas fa-times"></i> ຍົກເລີກ
+                </a>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-document.querySelector('form').addEventListener('submit', function(e) {
+// ກວດສອບຄວາມຖືກຕ້ອງຂອງຟອມກ່ອນສົ່ງ
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    let username = document.querySelector('input[name="username"]').value.trim();
     let pwd = document.getElementById('password').value;
     let cpwd = document.getElementById('confirm_password').value;
+    
+    // ກວດສອບຊື່ຜູ້ໃຊ້
+    if(username.length < 3) {
+        e.preventDefault();
+        Swal.fire('ຜິດພາດ', 'ຊື່ຜູ້ໃຊ້ຕ້ອງມີຢ່າງນ້ອຍ 3 ຕົວອັກສອນ', 'error');
+        return false;
+    }
+    
+    // ກວດສອບລະຫັດຜ່ານ
     if(pwd !== cpwd) {
         e.preventDefault();
         Swal.fire('ຜິດພາດ', 'ລະຫັດຜ່ານບໍ່ກົງກັນ', 'error');
-    } else if(pwd.length < 6 && pwd.length > 0) {
+        return false;
+    }
+    
+    if(pwd.length < 6) {
         e.preventDefault();
         Swal.fire('ຜິດພາດ', 'ລະຫັດຜ່ານຕ້ອງມີຢ່າງນ້ອຍ 6 ຕົວອັກສອນ', 'error');
+        return false;
     }
+    
+    // ສະແດງ Loading
+    let submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ກຳລັງບັນທຶກ...';
+    
+    return true;
+});
+
+// ເລື່ອນໄປຫາຂໍ້ຜິດພາດອັດຕະໂນມັດ
+<?php if($message_type == 'danger' && $message): ?>
+$(document).ready(function() {
+    $('html, body').animate({
+        scrollTop: $('.alert-danger').offset().top - 100
+    }, 500);
+});
+<?php endif; ?>
+
+// ສະແດງຄວາມແຂງແຮງຂອງລະຫັດຜ່ານ (Password strength indicator)
+document.getElementById('password').addEventListener('input', function() {
+    let password = this.value;
+    let strength = 0;
+    
+    if(password.length >= 6) strength++;
+    if(password.match(/[a-z]+/)) strength++;
+    if(password.match(/[A-Z]+/)) strength++;
+    if(password.match(/[0-9]+/)) strength++;
+    if(password.match(/[$@#&!]+/)) strength++;
+    
+    let strengthText = '';
+    let strengthColor = '';
+    
+    if(password.length === 0) {
+        strengthText = '';
+    } else if(strength <= 2) {
+        strengthText = 'ອ່ອນ';
+        strengthColor = '#dc3545';
+    } else if(strength === 3) {
+        strengthText = 'ປານກາງ';
+        strengthColor = '#ffc107';
+    } else if(strength >= 4) {
+        strengthText = 'ແຂງແຮງ';
+        strengthColor = '#28a745';
+    }
+    
+    // ສະແດງຄວາມແຂງແຮງ (ຖ້າຕ້ອງການເພີ່ມເອລະເມັນສະແດງຜົນ)
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
