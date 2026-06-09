@@ -94,19 +94,12 @@ function generateQRCodeLocal($data, $size = 300) {
 
 // ດຶງໂດເມນ
 function getBaseUrl() {
-    // Railway auto detection (สำคัญ)
+    // ใช้ Railway URL จริง แทนการ detect อัตโนมัติ
     if (getenv('RAILWAY_PUBLIC_DOMAIN')) {
         return 'https://' . getenv('RAILWAY_PUBLIC_DOMAIN');
     }
-    if (getenv('RAILWAY_STATIC_URL')) {
-        return 'https://' . getenv('RAILWAY_STATIC_URL');
-    }
-    // สำหรับ local development
-    if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == '127.0.0.1') {
-        return 'http://localhost';
-    }
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
-    return $protocol . $_SERVER['HTTP_HOST'];
+    // ถ้าไม่ได้ deploy ใช้ URL จริง
+    return 'https://your-app.up.railway.app'; // เปลี่ยนเป็น URL ของคุณ
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
