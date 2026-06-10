@@ -3,14 +3,14 @@ session_start();
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-// 1. ປ່ຽນ Path ໃຫ້ໄປເອີ້ນຫາຟາຍ database.php ທີ່ຢູ່ໂຟນເດີນອກສຸດ
+// ເອີ້ນຫາຟາຍເຊື່ອມຕໍ່ຖານຂໍ້ມູນຢູ່ Root
 include_once '../database.php'; 
 
 $response = ['success' => false, 'message' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 2. ປ່ຽນ $connect ມາເປັນ $conn ໃຫ້ກົງກັບຟາຍ database.php
+    // ດຶງຄ່າການເຊື່ອມຕໍ່ $conn ມາໃຊ້
     $username = isset($_POST['username']) ? mysqli_real_escape_string($conn, $_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     
@@ -20,18 +20,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // 3. ປ່ຽນຊື່ Table ຈາກ users ມາເປັນ heritage_houses ໃຫ້ກົງກັບ Database ຈິງຂອງເຈົ້າ
+    // ເອີ້ນດຶງຂໍ້ມູນຈາກ Table ທີ່ຊື່ heritage_houses ຕາມຮູບຖານຂໍ້ມູນຂອງເຈົ້າ
     $query = "SELECT * FROM heritage_houses WHERE username = '$username'";
-    $result = mysqli_query($conn, $query); // ປ່ຽນເປັນ $conn
+    $result = mysqli_query($conn, $query);
     
     if ($result && mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
         
+        // ກວດສອບລະຫັດຜ່ານທີ່ເຂົ້າລະຫັດໄວ້
         if (password_verify($password, $user['password'])) {
+            
+            // ເກັບ Session ເທົ່າທີ່ຈຳເປັນ ແລະ ກວດເຊັກຄ່າ NULL ຢ່າງປອດໄພ
             $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_id'] = $user['user_id'];
-            $_SESSION['admin_name'] = $user['fullname_en'] ?: $user['username'];
-            $_SESSION['admin_role'] = $user['role'];  
+            $_SESSION['admin_id'] = isset($user['user_id']) ? $user['user_id'] : 1;
+            $_SESSION['admin_name'] = !empty($user['fullname_lo']) ? $user['fullname_lo'] : $user['username'];
+            $_SESSION['admin_role'] = isset($user['role']) ? $user['role'] : 'admin';  
             
             $response['success'] = true;
             $response['message'] = 'ເຂົ້າສູ່ລະບົບສຳເລັດ';
@@ -39,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $response['message'] = 'ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ';
         }
     } else {
-        $response['message'] = 'ບໍ່ພົບຊື່ຜູ້ໃຊ້ນີ້';
+        $response['message'] = 'ບໍ່ພົບຊື່ຜູ້ໃຊ້ນີ້ໃນລະບົບ';
     }
 }
 
