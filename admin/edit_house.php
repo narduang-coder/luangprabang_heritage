@@ -64,11 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         historical_significance_en='$historical_significance_en', 
         description_lo='$description_lo', 
         description_en='$description_en', 
-        -- latitude=$latitude, 
-        -- longitude=$longitude, 
-        image_main='$image_main', 
-        status='$status' 
-    WHERE house_id=$house_id";
+       $updateQuery = "UPDATE heritage_houses SET 
+    qr_code='$qr_code', 
+    house_number='$house_number', 
+    house_name_lo='$house_name_lo', 
+    ...
+    image_main='$image_main', 
+    status='$status' 
+WHERE house_id=$house_id";
     
     if (mysqli_query($connect, $updateQuery)) { 
         $message = 'ອັບເດດຂໍ້ມູນສຳເລັດ!'; 

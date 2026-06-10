@@ -21,8 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // ເອີ້ນດຶງຂໍ້ມູນຈາກ Table ທີ່ຊື່ heritage_houses ຕາມຮູບຖານຂໍ້ມູນຂອງເຈົ້າ
-    $query = "SELECT * FROM heritage_houses WHERE username = '$username'";
-    $result = mysqli_query($conn, $query);
+$query = "SELECT * FROM users WHERE username = '$username' AND status = 'active'";    $result = mysqli_query($conn, $query);
     
     if ($result && mysqli_num_rows($result) > 0) {
         $user = mysqli_fetch_assoc($result);
