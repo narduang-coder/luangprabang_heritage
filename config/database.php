@@ -1,16 +1,24 @@
 <?php
-// Railway ຈະສົ່ງຄ່າເຫຼົ່ານີ້ມາໃຫ້ເວັບໄຊທ໌ໂດຍອັດຕະໂນມັດ
+// ສ່ວນເຊື່ອມຕໍ່ (ຄືຂອງທ່ານ)
 $hostname = getenv('MYSQLHOST') ?: 'mysql-1kri.railway.internal';
 $username = getenv('MYSQLUSER') ?: 'root';
 $password = getenv('MYSQLPASSWORD') ?: '';
 $database = getenv('MYSQL_DATABASE') ?: 'heritage_houses';
 $port     = getenv('MYSQLPORT') ?: '3306';
 
-// ສ້າງການເຊື່ອມຕໍ່ໂດຍໃສ່ຮູບແບບ Port ເຂົ້າໄປນຳ
 $conn = new mysqli($hostname, $username, $password, $database, $port);
 
 if ($conn->connect_error) {
     die("ການເຊື່ອມຕໍ່ຜິດພາດ: " . $conn->connect_error);
 }
-// ຖ້າເຊື່ອມຕໍ່ສຳເລັດ ລະບົບຈະເຮັດວຽກຕໍ່ໄປ...
+
+// ຕັ້ງຄ່າ encoding (ແນະນຳ)
+$conn->set_charset("utf8mb4");
+
+// ເຮັດວຽກກັບຖານຂໍ້ມູນ...
+$sql = "SELECT * FROM houses";
+$result = $conn->query($sql);
+
+// ປິດການເຊື່ອມຕໍ່ເມື່ອສຳເລັດ
+$conn->close();
 ?>
