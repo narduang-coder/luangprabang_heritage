@@ -3,7 +3,7 @@
 $hostname = getenv('MYSQLHOST') ?: 'mysql-1kri.railway.internal';
 $username = getenv('MYSQLUSER') ?: 'root';
 $password = getenv('MYSQLPASSWORD') ?: '';
-$database = getenv('MYSQLDATABASE') ?: 'heritage_houses';
+$database = getenv('MYSQL_DATABASE') ?: 'heritage_houses';
 $port     = getenv('MYSQLPORT') ?: '3306';
 
 // ສ້າງການເຊື່ອມຕໍ່ໂດຍໃສ່ຮູບແບບ Port ເຂົ້າໄປນຳ
