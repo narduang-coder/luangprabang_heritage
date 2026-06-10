@@ -1,6 +1,10 @@
 <?php
 // Railway ຈະສົ່ງຄ່າເຫຼົ່ານີ້ມາໃຫ້ເວັບໄຊທ໌ໂດຍອັດຕະໂນມັດ
-$hostname = getenv('MYSQLHOST') ?: 'localhost';
+$hostname = getenv('MYSQLHOST') ?: 'mysql-1kri.railway.internal
+
+
+
+';
 $username = getenv('MYSQLUSER') ?: 'root';
 $password = getenv('MYSQLPASSWORD') ?: '';
 $database = getenv('MYSQLDATABASE') ?: 'railway';
