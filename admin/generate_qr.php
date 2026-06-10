@@ -94,12 +94,22 @@ function generateQRCodeLocal($data, $size = 300) {
 
 // ດຶງໂດເມນ
 function getBaseUrl() {
-    // ใช้ Railway URL จริง แทนการ detect อัตโนมัติ
+    // ກຳນົດໂດເມນຈິງຂອງເຈົ້າທີ່ນີ້
+    // ປ່ຽນເປັນໂດເມນຂອງເຈົ້າໃນ Railway
+    $railway_domain = "https://your-project.up.railway.app"; // ແກ້ໄຂຕາມນີ້
+    
+    // ກວດສອບວ່າຢູ່ໃນ Railway ຫຼືບໍ່
     if (getenv('RAILWAY_PUBLIC_DOMAIN')) {
         return 'https://' . getenv('RAILWAY_PUBLIC_DOMAIN');
     }
-    // ถ้าไม่ได้ deploy ใช้ URL จริง
-    return 'https://your-app.up.railway.app'; // เปลี่ยนเป็น URL ของคุณ
+    
+    // ສຳລັບການທົດສອບໃນ localhost
+    if ($_SERVER['HTTP_HOST'] == 'localhost' || $_SERVER['HTTP_HOST'] == '127.0.0.1') {
+        return $railway_domain; // ໃຊ້ໂດເມນຈິງ
+    }
+    
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    return $protocol . $_SERVER['HTTP_HOST'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
