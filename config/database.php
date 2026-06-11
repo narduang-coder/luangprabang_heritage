@@ -1,11 +1,14 @@
 <?php
 // config/database.php สำหรับ Railway
-$server = "acela.proxy.rlwy.net";
-$user = "root";
-$password = "tTFPdYKTjSRhiQJugkkJqtYVnMPHDQNu";
-$db_name = "railway";
-$port = 19814;
 
+// ดึงค่าจาก Environment Variables ที่ Railway กำหนดให้
+$server = getenv('MYSQLHOST') ?: 'localhost';
+$user = getenv('MYSQLUSER') ?: 'root';
+$password = getenv('MYSQLPASSWORD') ?: '';
+$db_name = getenv('MYSQLDATABASE') ?: 'luangprabang_heritage';
+$port = getenv('MYSQLPORT') ?: 3306;
+
+// สร้างการเชื่อมต่อ
 $connect = mysqli_connect($server, $user, $password, $db_name, $port);
 
 if (!$connect) {
