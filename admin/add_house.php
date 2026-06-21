@@ -32,6 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $house_type = mysqli_real_escape_string($connect, trim($_POST['house_type'] ?? ''));
     $building_material = mysqli_real_escape_string($connect, trim($_POST['building_material'] ?? ''));
     
+    // ຮັບຄ່າຂໍ້ມູນແຜນທີ່ເພີ່ມເຕີມ
+    $latitude = mysqli_real_escape_string($connect, trim($_POST['latitude'] ?? ''));
+    $longitude = mysqli_real_escape_string($connect, trim($_POST['longitude'] ?? ''));
+    $google_map_link = mysqli_real_escape_string($connect, trim($_POST['google_map_link'] ?? ''));
+    
     // ກວດສອບຂໍ້ມູນທີ່ຈຳເປັນ
     $errors = [];
     if (empty($qr_code)) $errors[] = 'QR Code ຫ້າມວ່າງເປົ່າ';
@@ -58,18 +63,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // ປັບປຸງ SQL INSERT ໃຫ້ຮອງຮັບແຜນທີ່
         $sql = "INSERT INTO heritage_houses (
             qr_code, house_number, house_name_lo, house_name_en,
             owner_name_lo, owner_name_en, construction_year,
             architectural_style_lo, architectural_style_en,
             historical_significance_lo, historical_significance_en,
-            description_lo, description_en, image_main, status, house_type, building_material
+            description_lo, description_en, image_main, status, house_type, building_material,
+            latitude, longitude, google_map_link
         ) VALUES (
             '$qr_code', '$house_number', '$house_name_lo', '$house_name_en',
             '$owner_name_lo', '$owner_name_en', $construction_year,
             '$architectural_style_lo', '$architectural_style_en',
             '$historical_significance_lo', '$historical_significance_en',
-            '$description_lo', '$description_en', '$image_main', '$status', '$house_type', '$building_material'
+            '$description_lo', '$description_en', '$image_main', '$status', '$house_type', '$building_material',
+            '$latitude', '$longitude', '$google_map_link'
         )";
         
         if (mysqli_query($connect, $sql)) {
@@ -133,11 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-label { font-weight: bold; color: #1a472a; margin-bottom: 5px; display: block; }
         @media (max-width:768px){ .sidebar { width: 70px; } .sidebar .nav-link span { display: none; } .main-content { margin-left: 70px; } }
     </style>
-    
 </head>
 <body>
 
-<!-- Sidebar -->
 <div class="sidebar">
     <div class="p-3 text-center border-bottom border-success">
         <i class="fas fa-landmark fa-2x"></i>
@@ -151,7 +157,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </nav>
 </div>
 
-<!-- Main Content -->
 <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-plus-circle text-success"></i> ເພີ່ມຂໍ້ມູນເຮືອນມໍລະດົກ</h2>
@@ -195,14 +200,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label>ປີກໍ່ສ້າງ</label>
-                            <input type="number" name="construction_year" class="form-control" min="1000" max="2025">
+                            <input type="number" name="construction_year" class="form-control" min="1000" max="2026">
                         </div>
-<br?\>
+                    </div>
+                </div>
+            </div>
 
             <div class="col-md-6">
                 <div class="card-custom">
-                    <h5 class="mb-3">
-                        <i class="fas fa-map-marker-alt text-success"></i> ປະເພດ ແລະ ວັດສະດຸ</h5>
+                    <h5 class="mb-3"><i class="fas fa-building text-success"></i> ປະເພດ ແລະ ວັດສະດຸ</h5>
                     
                     <div class="mb-3">
                         <label>ປະເພດເຮືອນ</label>
@@ -241,8 +247,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="card-custom">
+            <h5 class="mb-3"><i class="fas fa-map-marked-alt text-success"></i> ຂໍ້ມູນແຜນທີ່ຕັ້ງ (Google Maps)</h5>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>ລະຕິຈູດ (Latitude)</label>
+                    <input type="text" name="latitude" class="form-control" placeholder="ຕົວຢ່າງ: 19.8962">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>ລອງຈິຈູດ (Longitude)</label>
+                    <input type="text" name="longitude" class="form-control" placeholder="ຕົວຢ່າງ: 102.1345">
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label>ລິ້ງແຜນທີ່ ຫຼື ໂຄດຝັງແຜນທີ່ (Google Maps Link / Share Embed Code)</label>
+                    <textarea name="google_map_link" class="form-control" rows="2" placeholder="ວາງ Link ຈາກ Google Maps ຫຼື ໂຄດ <iframe>..."></textarea>
+                    <small class="text-muted">ສາມາດນຳເອົາລິ້ງມາຈາກການ Share ໝາຍໝຸດໃນ Google Maps ໄດ້</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-custom">
             <h5 class="mb-3"><i class="fas fa-history text-success"></i> ຂໍ້ມູນລາຍລະອຽດ</h5>
-            
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label>ປະຫວັດຂອງເຮືອນ (ລາວ)</label>
@@ -273,7 +297,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="col-md-5">
                         <input type="file" name="additional_images[]" class="form-control" accept="image/*">
                     </div>
-                 
                     <div class="col-md-3">
                         <input type="text" name="image_caption_lo[]" class="form-control" placeholder="ຄຳອະທິບາຍ (ລາວ)">
                     </div>
